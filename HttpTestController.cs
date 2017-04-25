@@ -6,6 +6,7 @@ using System.Web.Mvc;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
+using System.Collections.Concurrent;
 
 namespace GuestBook2.Controllers
 {
@@ -19,8 +20,9 @@ namespace GuestBook2.Controllers
         public static Thread[] tReceiver = new Thread[2];
         public static Socket[] mClientSockets = new Socket[2];
         public static bool[] isUsing = new bool[2];
-        public static List<byte[]> bytes = new List<byte[]>();
-        public static byte[] buffer = new byte[6];          //公共资源区
+        public static byte[][] bytes = new byte[2][];
+        public static byte[] buffers = new byte[] { 0x61, 0x61, 0x61, 0x61, 0x61, 0x61 };
+        public static bool[] isreceiving = new bool[2] { false, false };
         public static bool mExit=false;
         public static bool locked=false;
         public static bool first_time = true;
@@ -31,18 +33,19 @@ namespace GuestBook2.Controllers
         public const byte NODEBACKWARD = 0x04;              //减速
         public const byte NODESTOP = 0x00;                  //停止
 
-
+        
 
         public ActionResult Index()
         {
-            List<byte[]> b = new List<byte[]>(bytes);
+            init();
+            byte[][] b = bytes;
             return View(b);
         }
 
 
         public void startserver(/*Object o*/)
         {
-            init();
+            //init();
             IPAddress ip = IPAddress.Parse(IP);
             IPEndPoint endpoint = new IPEndPoint(ip, port);
             mExit = false;
@@ -61,13 +64,17 @@ namespace GuestBook2.Controllers
                 while (!mExit)
                 {
                     mSocket.BeginAccept(new AsyncCallback(AcceptCallBack),mSocket);                //异步监听
-                    System.Diagnostics.Debug.Write("5");
+                    //System.Diagnostics.Debug.Write("5");
                    //mClientSocket.Send(new byte[] {0x01,0x02});
                    // s = new Socket(mClientSocket);
-                    tReceiver[count%2] = new Thread(new ParameterizedThreadStart(receive));
-                    tReceiver[count%2].Start(count%2);
-                    count++;
-                    Thread.Sleep(30);
+                    if (mClientSockets[count % 2] != null&&!isUsing[count%2])
+                    {
+                        tReceiver[count % 2] = new Thread(new ParameterizedThreadStart(receive));
+                        tReceiver[count % 2].Start(count % 2);
+                        isUsing[count%2] = true;
+                        count++;
+                    }
+                        Thread.Sleep(30);
                 }
                 shutSocket();
 
@@ -90,14 +97,15 @@ namespace GuestBook2.Controllers
                 {
                     while (locked) ;
                     locked = true;
+                    isreceiving[index] = true;
                     //mClientSocket.BeginReceive(bytes, 0, 6, SocketFlags.None,new AsyncCallback(ReceiveCallBack),mClientSocket);
                     if (isUsing[index])
                     {
-                        mClientSockets[index].BeginReceive(buffer, 0, 6, SocketFlags.None, new AsyncCallback(ReceiveCallBack), mClientSockets[index]);
-                        buffer.CopyTo(bytes[index],0);
+                        mClientSockets[index].BeginReceive(buffers, 0, 6, SocketFlags.None, new AsyncCallback(ReceiveCallBack), mClientSockets[index]);
                     }
+                    isreceiving[index] = false;
                     locked = false;
-                    Thread.Sleep(30);
+                    Thread.Sleep(300);
                 }
                 catch (SocketException e)
                 {
@@ -110,9 +118,8 @@ namespace GuestBook2.Controllers
                 if (bytes[index][0] != 0xff)
                     buf.CopyTo(bytes[index], 0);
                 Thread.Sleep(30);
-                System.Diagnostics.Debug.Write(bytes[5]);
-                System.Diagnostics.Debug.Write(buf);
-                //Refresh();
+                //System.Diagnostics.Debug.Write(bytes[5]);
+                //System.Diagnostics.Debug.Write(buf);
             }
 
         }
@@ -124,7 +131,11 @@ namespace GuestBook2.Controllers
             buf[1] = Byte.Parse(getHex(node));
             buf[2] = data;
             //mClientSocket.Send(buf);
-            mClientSockets[node % 2].Send(buf);
+            int nodeid = (node - 1) % 2;
+            if (isUsing[nodeid])
+            {
+                mClientSockets[nodeid].Send(buf);
+            }
             //mSocket.Send(buf);
         }
 
@@ -133,16 +144,25 @@ namespace GuestBook2.Controllers
             if (mExit)
                 return;
             Socket temp = (Socket)result.AsyncState;
+            int i=0;
+            while (i < isreceiving.Length)
+            {
+                if (isreceiving[i])
+                    break;
+                i++;
+            }
+            if (isreceiving.Length > i)
+                buffers.CopyTo(bytes[i], 0);
             temp.EndReceive(result);
             result.AsyncWaitHandle.Close();
-            temp.BeginReceive(buffer, 0, 6, SocketFlags.None, new AsyncCallback(ReceiveCallBack),temp);
+            temp.BeginReceive(buffers, 0, 6, SocketFlags.None, new AsyncCallback(ReceiveCallBack),temp);
         }
 
         static void AcceptCallBack(IAsyncResult result)
         {
             if (mExit)
                 return;
-            Socket server_temp = (Socket)result;
+            Socket server_temp = (Socket)result.AsyncState;
             mClientSockets[count % 2] = server_temp.EndAccept(result);
             server_temp.BeginAccept(new AsyncCallback(AcceptCallBack), server_temp);
         }
@@ -166,41 +186,56 @@ namespace GuestBook2.Controllers
             {
                 result += ('A' + high - 10);
             }
+            else
+            {
+                result += high;
+            }
             if (low >= 10)
             {
                 result += ('A' + low - 10);
             }
+            else
+            {
+                result += low;
+            }
             return result;
+        }
+
+        private void reset(byte[] arr)
+        {
+            for (int i = 0; i<arr.Length;i++ )
+            {
+                arr[i] = 0x61;
+            }
         }
 
         private void init()
         {
-            byte[] b = new byte[6] { 0x61, 0x61, 0x61, 0x61, 0x61, 0x61};
-            bytes.Add(b);
-            bytes.Add(b);
+            bytes[0] = new byte[6] { 0x61, 0x61, 0x61, 0x61, 0x61, 0x61 };
+            bytes[1] = new byte[6] { 0x61, 0x61, 0x61, 0x61, 0x61, 0x61 };
         }
 
 
         public JsonResult getD()
         {
-            var condition = new
-            {
+            var condition =new {
                 node = bytes[0][1],
                 temperature = bytes[0][2],
                 wet = bytes[0][3],
                 light = bytes[0][4],
                 rainy = bytes[0][5],
                 node1=bytes[1][1],
-                temperature1 = bytes[0][2],
-                wet1 = bytes[0][3],
-                light1 = bytes[0][4],
-                rainy1 = bytes[0][5]
+                temperature1 = bytes[1][2],
+                wet1 = bytes[1][3],
+                light1 = bytes[1][4],
+                rainy1 = bytes[1][5]
             };
             return Json(condition);
         }
 
-        public ActionResult Forward(int node)
+        public ActionResult Forward()
         {
+            int node = int.Parse(Request["node"]);
             sendData(NODEFOWARD,node);
             return RedirectToAction("Index");
         }
