@@ -23,6 +23,7 @@ namespace GuestBook2.Controllers
         public static byte[][] bytes = new byte[2][];
         public static byte[] buffers = new byte[] { 0x61, 0x61, 0x61, 0x61, 0x61, 0x61 };
         public static bool[] isreceiving = new bool[2] { false, false };
+        public static bool receivelock = false;
         public static bool mExit=false;
         public static bool locked=false;
         public static bool first_time = true;
@@ -144,15 +145,10 @@ namespace GuestBook2.Controllers
             if (mExit)
                 return;
             Socket temp = (Socket)result.AsyncState;
-            int i=0;
-            while (i < isreceiving.Length)
-            {
-                if (isreceiving[i])
-                    break;
-                i++;
-            }
-            if (isreceiving.Length > i)
-                buffers.CopyTo(bytes[i], 0);
+            if ((int)buffers[1] % 2 == 1)
+                buffers.CopyTo(bytes[0], 0);
+            else
+                buffers.CopyTo(bytes[1], 0);
             temp.EndReceive(result);
             result.AsyncWaitHandle.Close();
             temp.BeginReceive(buffers, 0, 6, SocketFlags.None, new AsyncCallback(ReceiveCallBack),temp);
