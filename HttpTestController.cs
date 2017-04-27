@@ -205,6 +205,26 @@ namespace GuestBook2.Controllers
             }
         }
 
+        private void BroadCast(byte command,int start,int end)
+        {
+            for (int i = 0; i < isUsing.Length&&i<=end; i++)
+            {
+                if (isUsing[i])
+                {
+                    sendData(command, i+1);
+                }
+            }
+        }
+
+        private void checkStatus()
+        {
+            for (int i = 0; i < isUsing.Length; i++)
+            {
+                if (isUsing[i] && mClientSockets[i] == null)
+                    isUsing[i] = false;
+            }
+        }
+
         private void init()
         {
             bytes[0] = new byte[6] { 0x61, 0x61, 0x61, 0x61, 0x61, 0x61 };
@@ -224,7 +244,9 @@ namespace GuestBook2.Controllers
                 temperature1 = bytes[1][2],
                 wet1 = bytes[1][3],
                 light1 = bytes[1][4],
-                rainy1 = bytes[1][5]
+                rainy1 = bytes[1][5],
+                online_one=isUsing[0],
+                online_two=isUsing[1]
             };
             return Json(condition);
         }
@@ -236,26 +258,30 @@ namespace GuestBook2.Controllers
             return RedirectToAction("Index");
         }
 
-        public ActionResult BackWard(int node)
+        public ActionResult BackWard()
         {
+            int node = int.Parse(Request["node"]);
             sendData(NODEBACKWARD,node);
             return RedirectToAction("Index");
         }
 
-        public ActionResult Rotate_Right(int node)
+        public ActionResult Rotate_Right()
         {
+            int node = int.Parse(Request["node"]);
             sendData( NODEROTATE_LEFT,node);
             return RedirectToAction("Index");
         }
 
-        public ActionResult Rotate_Left(int node)
+        public ActionResult Rotate_Left()
         {
+            int node = int.Parse(Request["node"]);
             sendData(NODEROTATE_RIGHT,node);
             return RedirectToAction("Index");
         }
 
-        public ActionResult STOP(int node)
+        public ActionResult STOP()
         {
+            int node = int.Parse(Request["node"]);
             sendData(NODESTOP,node);
             return RedirectToAction("Index");
         }
@@ -271,11 +297,25 @@ namespace GuestBook2.Controllers
             return RedirectToAction("Index");
         }
 
+        public ActionResult StopAll()
+        {
+            BroadCast(NODESTOP, 0, isUsing.Length - 1);
+            return RedirectToAction("Index");
+        }
+
+        public ActionResult StartAll()
+        {
+            BroadCast(NODEFOWARD, 0, isUsing.Length - 1);
+            return RedirectToAction("Index");
+        }
+
+
         public ActionResult ShutDown()
         {
             while (locked) ;
             if (!mExit)
                 shutSocket();
+            isUsing[0] = isUsing[1] = false;
             return RedirectToAction("Index");
         }
 
