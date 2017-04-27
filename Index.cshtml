@@ -1,0 +1,311 @@
+
+
+<head>
+<style type="text/css">
+    a{
+     font-family:Arial;
+     font-size:12px;
+     text-align:center;
+     margin:3px;
+    }
+
+    a:link, a:visited{
+     color:#000000;
+     padding:4px 10px 4px 10px;
+     background-color:#b6ff00;
+     border-top:1px solid #EEEEEE;
+     border-left:1px solid #EEEEEE;
+     border-bottom:1px solid #717171;
+     border-right:1px solid #717171;
+    }
+
+     a:hover{
+     color:#ffd800;
+     background-color:#00ff21;
+     border-top:1px solid #717171;
+     border-left:1px solid #717171;
+     border-bottom:1px solid #EEEEEE;
+     border-right:1px solid #EEEEEE;
+    }
+
+
+    .condition_col
+    {
+        position:absolute;
+        right:700px;
+        width:200px;
+        
+    }
+
+    .steer_plate
+    {
+        position:absolute;
+        right:400px;
+        width:200px;
+    }
+
+    #steer_plate1
+    {
+        top:250px;
+    }
+
+    #steer_plate2
+    {
+        top:450px;
+    }
+
+    .steer
+
+    
+    #wrapper {
+            background-color: transparent;
+            border-top: 1px solid #ccc;
+            border-bottom: 1px solid #ccc;
+            width: 100%;
+            height: 300px;
+            padding-top: 25px;
+            margin: -170px 0 0 0;
+            position: absolute;
+            left: 0;
+            top: 40%;
+        }
+
+     html,body {
+            height: 100%;
+            padding: 0;
+            margin: 0;
+        }
+
+        body {
+            min-height: 600px;
+        }
+    #node_1
+    {
+        color:gold;
+    }
+    #node_2
+    {
+        color:blue;
+    }
+
+
+
+
+</style>
+
+ @Scripts.Render("~/bundles/jquery")
+<script type="text/javascript">
+    $(document).ready(function () {
+        $("#refresh").click(function () {
+            alert("wwwww");
+            $.ajax({
+                type: "POST",
+                url: "/HttpTest/getD",
+                data: "",
+                success: function (b) {
+
+                    alert(b.node+ "," + b.temperature);
+                    $("#node").val(b.node);
+                    $("#temperature").val(b.temperature);
+                    $("#wet").val(b.wet);
+                    $("#light").val(b.light);
+                    $("#rainy").val(b.rainy);
+
+                }
+            });
+        });
+        window.setInterval(doit, 1000);
+    });
+
+    function doit() {
+        $.ajax({
+            type: "POST",
+            url: "/HttpTest/getD",
+            data: "",
+            success: function (b) {
+                if (b.node != 0xff) {
+                    $("#node").val(b.node);
+                    $("#temperature").val(b.temperature);
+                    $("#wet").val(b.wet);
+                    $("#light").val(b.light);
+                    $("#rainy").val(b.rainy);
+                    $("#node1").val(b.node1);
+                    $("#temperature1").val(b.temperature1);
+                    $("#wet1").val(b.wet1);
+                    $("#light1").val(b.light1);
+                    $("#rainy1").val(b.rainy1);
+                }
+                if (b.online_one==true) {
+                    // $("#signal_light").attr("src", "../../../Content/accessible.jpg");
+                    $("#signal_label").text("在线");
+                    $("#signal_label").css("color", "green");
+                } else {
+                   // $("#signal_light").attr("src", "../../../Content/inaccessible.jpg");
+                    $("#signal_label").text("离线");
+                    $("#signal_label").css("color","red");
+                }
+                if (b.online_two == true) {
+                    // $("#signal_light").attr("src", "../../../Content/accessible.jpg");
+                    $("#signal_label2").text("在线");
+                    $("#signal_label2").css("color", "green");
+                } else {
+                    // $("#signal_light").attr("src", "../../../Content/inaccessible.jpg");
+                    $("#signal_label2").text("离线");
+                    $("#signal_label2").css("color", "red");
+                }
+
+
+            }
+        });
+    }
+    
+</script>
+
+
+</head>
+
+<body >
+
+
+<h2>远程控制台</h2>
+<p>
+    <a href="/HttpTest/StartUp" class="server_button" id="StartUp">启动服务器</a>
+    <a href="/HttpTest/ShutDown" class="server_button" id="ShutDown">停止服务器</a>
+</p>
+<div id="node_1">
+<table>
+        <tr>
+            <td>
+                <div id="signal">
+                     <!--<img id="signal_light" src="../../../Content/inaccessible1.jpg"/>-->
+                <label id="signal_label">离线</label>
+                </div>
+            </td>
+        </tr>
+
+        <tr>
+            <td class="control_cloumn">
+                节点号:<input type="text" id="node" name="node" class="condition_col" value="@Model[0][1]" />
+            </td>
+        </tr>
+        <tr>
+            <td class="control_cloumn">
+                温度:<input type="text" id="temperature" name="temperature" class="condition_col" value="@Model[0][2]" />
+            </td>
+        <tr>
+        <tr>
+            <td>
+                湿度:<input type="text" id="wet" name="wet" class="condition_col" value="@Model[0][3]" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                光照:<input type="text" id="light" name="light" class="condition_col" value="@Model[0][4]" />
+            </td>
+        </tr>
+        <tr>
+             <td>
+                雨天:<input type="text" id="rainy" name="rainy" class="condition_col" value="@Model[0][5]" />
+             </td>
+        </tr>
+</table>
+    <table class="steer_plate" id="steer_plate1">
+        <tbody>
+        <tr class="control_rows">
+            <td class="control_cloumn">
+            <a href="/HttpTest/Forward?node=1" class="function_button">加速</a>
+            </td>
+            <td class="control_cloumn">
+                <a href="/HttpTest/BackWard?node=1" class="function_button">减速</a>
+            </td>
+        </tr>
+        <tr class="control_rows">
+            <td class="control_cloumn">
+                <a href="/HttpTest/Rotate_Right?node=1" class="function_button">正转</a>
+            </td>
+            <td class="control_cloumn">
+                <a href="/HttpTest/Rotate_Left?node=1" class="function_button">反转</a>
+            </td>
+        </tr>
+        <tr class="control_rows">
+            <td class="control_cloumn">
+            <a href="/HttpTest/STOP?node=1" class="function_button/1">停止</a>
+            </td>
+        </tr>
+        </tbody>
+   </table>
+
+
+
+</div>
+
+  <div id="node_2">
+<table>
+        <tr>
+            <td>
+                <div id="signal2">
+                     <!--<img id="signal_light" src="../../../Content/inaccessible1.jpg"/>-->
+                <label id="signal_label2"></label>
+                </div>
+            </td>
+        </tr>
+        
+        <tr>
+            <td class="control_cloumn">
+                节点号:<input type="text" id="node1" name="node" class="condition_col" value="@Model[1][1]" />
+            </td>
+        </tr>
+        <tr>
+            <td class="control_cloumn">
+                温度:<input type="text" id="temperature1" name="temperature" class="condition_col" value="@Model[1][2]" />
+            </td>
+        <tr>
+        <tr>
+            <td>
+                湿度:<input type="text" id="wet1" name="wet" class="condition_col" value="@Model[1][3]" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                光照:<input type="text" id="light1" name="light" class="condition_col" value="@Model[1][4]" />
+            </td>
+        </tr>
+        <tr>
+             <td>
+                雨天:<input type="text" id="rainy1" name="rainy" class="condition_col" value="@Model[1][5]" />
+             </td>
+        </tr>
+</table>
+<div>
+    <table class="steer_plate" id="steer_plate2">
+        <tbody>
+        <tr class="control_rows">
+            <td class="control_cloumn">
+            <a href="/HttpTest/Forward?node=2" class="function_button">加速</a>
+            </td>
+            <td class="control_cloumn">
+                <a href="/HttpTest/BackWard?node=2" class="function_button">减速</a>
+            </td>
+        </tr>
+        <tr class="control_rows">
+            <td class="control_cloumn">
+                <a href="/HttpTest/Rotate_Right?node=2" class="function_button">正转</a>
+            </td>
+            <td class="control_cloumn">
+                <a href="/HttpTest/Rotate_Left?node=2" class="function_button">反转</a>
+            </td>
+        </tr>
+        <tr class="control_rows">
+            <td class="control_cloumn">
+            <a href="/HttpTest/STOP?node=2" class="function_button">停止</a>
+            </td>
+        </tr>
+        </tbody>
+   </table>
+  </div>
+</div>
+<div>
+    <a href="/HttpTest/StopAll" class="function_button">全部停止</a>
+    <a href="/HttpTest/StartAll" class="function_button">全部加速</a>
+</div>
+</body>
