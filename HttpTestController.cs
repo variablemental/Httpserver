@@ -309,6 +309,24 @@ namespace GuestBook2.Controllers
             return RedirectToAction("Index");
         }
 
+        public ActionResult BackAll()
+        {
+            BroadCast(NODEBACKWARD, 0, isUsing.Length - 1);
+            return RedirectToAction("Index");
+        }
+
+        public ActionResult Rotate_Left_All()
+        {
+            BroadCast(NODEROTATE_LEFT, 0, isUsing.Length - 1);
+            return RedirectToAction("Index");
+        }
+        public ActionResult Rotate_Right_All()
+        {
+            BroadCast(NODEROTATE_RIGHT, 0, isUsing.Length - 1);
+            return RedirectToAction("Index");
+        }
+
+
 
         public ActionResult ShutDown()
         {
